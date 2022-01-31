@@ -2,14 +2,71 @@ const Cart = require("../models/cart");
 const Product = require("../models/product");
 
 exports.addToCart = async (req, res) => {
-  const { product, description, price } = req.body;
   try {
-    if (!product || !description || !price) {
-      return res.status(400).json({ error: "All fields are required" });
+    const userCartProducts = await Cart.find({ user: req.user._id });
+
+    if (userCartProducts.length != 0) {
+      for (let item of userCartProducts) {
+        if (item.product.toString() === req.params.id) {
+          return res.status(400).json({ error: "Product is already in cart" });
+        }
+      }
     }
-    await Cart.create({ product, description, price, user: req.user._id });
+
+    const product = await Product.findById(req.params.id);
+
+    if (!product) {
+      return res
+        .status(400)
+        .json({ error: "No product found with the given id" });
+    }
+
+    let total = product.price;
+    let price = total;
+
+    await Cart.create({
+      product: req.params.id,
+      total,
+      price,
+      user: req.user._id,
+    });
 
     res.status(200).json({ success: true, message: "Added to cart" });
+  } catch (error) {
+    console.log(error);
+    res
+      .status(500)
+      .json({ error: "Server has occured some problem, please try again" });
+  }
+};
+
+exports.updateCart = async (req, res) => {
+  const { quantity } = req.body;
+  try {
+    if (!quantity) {
+      return res.status(400).json({ error: "Quantity field is required" });
+    }
+
+    const cartProduct = await Cart.findById(req.params.id);
+
+    if (!cartProduct) {
+      return res.status(400).json({ error: "Product was not found in cart" });
+    }
+    let updatedTotal = cartProduct.price * quantity;
+
+    const updatedCart = await Cart.findByIdAndUpdate(
+      req.params.id,
+      {
+        quantity,
+        total: updatedTotal,
+      },
+      { new: true }
+    );
+
+    updatedCart.user = undefined;
+    updatedCart.__v = undefined;
+
+    return res.status(200).json({ success: true, updatedCart });
   } catch (error) {
     res
       .status(500)
@@ -17,15 +74,35 @@ exports.addToCart = async (req, res) => {
   }
 };
 
-exports.updateQuantityInCart = async (req, res) => {
+exports.getUserSpecificCartItems = async (req, res) => {
   try {
-    if (!req.body.quantity) {
-      return res.status(400).json({ error: "Quantity field is required" });
-    }
-    const cart = await Cart.findById(req.parsms.id);
+    let count = 0;
+    const cartItems = await Cart.find({ user: req.user._id }).populate(
+      "product",
+      "name description photos"
+    );
 
-    if (!cart) {
-      return res.status(400).json({ error: "Product was not found in cart" });
+    if (cartItems.length == 0) {
+      return res.status(200).json({ message: "Cart is empty" });
     }
-  } catch (error) {}
+
+    cartItems.forEach((item) => {
+      item.user = undefined;
+      item.__v = undefined;
+      item.product.photos.forEach((photo) => {
+        if (count == 0) {
+          item.product.photos = photo;
+        }
+        count++;
+      });
+      count = 0;
+    });
+
+    return res.status(200).json({ success: true, cartItems });
+  } catch (error) {
+    console.log(error);
+    res
+      .status(500)
+      .json({ error: "Server has occured some problem, please try again" });
+  }
 };
