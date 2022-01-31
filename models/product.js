@@ -48,6 +48,10 @@ const productSchema = new Mongoose.Schema({
     type: Number,
     default: 0,
   },
+  stock: {
+    type: Number,
+    required: [true, "please add a number in stock"],
+  },
   noofreviews: {
     type: Number,
     default: 0,
