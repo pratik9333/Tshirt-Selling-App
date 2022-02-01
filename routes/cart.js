@@ -4,6 +4,7 @@ const {
   addToCart,
   updateCart,
   getUserSpecificCartItems,
+  removeCart,
 } = require("../Controllers/cart");
 const isLoggedIn = require("../middlewares/authenticate");
 
@@ -11,7 +12,8 @@ const isLoggedIn = require("../middlewares/authenticate");
 router
   .route("/cart/:id")
   .post(isLoggedIn, addToCart)
-  .put(isLoggedIn, updateCart);
+  .put(isLoggedIn, updateCart)
+  .delete(isLoggedIn, removeCart);
 
 //get cart items
 router.route("/cart").get(isLoggedIn, getUserSpecificCartItems);

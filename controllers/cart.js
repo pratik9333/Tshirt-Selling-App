@@ -42,6 +42,7 @@ exports.addToCart = async (req, res) => {
 
 exports.updateCart = async (req, res) => {
   const { quantity } = req.body;
+  let count = 0;
   try {
     if (!quantity) {
       return res.status(400).json({ error: "Quantity field is required" });
@@ -52,6 +53,7 @@ exports.updateCart = async (req, res) => {
     if (!cartProduct) {
       return res.status(400).json({ error: "Product was not found in cart" });
     }
+
     let updatedTotal = cartProduct.price * quantity;
 
     const updatedCart = await Cart.findByIdAndUpdate(
@@ -61,13 +63,23 @@ exports.updateCart = async (req, res) => {
         total: updatedTotal,
       },
       { new: true }
-    );
+    ).populate("product", "name description photos");
+
+    updatedCart.product.photos.forEach((photo) => {
+      if (count == 0) {
+        updatedCart.product.photos = photo;
+      }
+      count++;
+    });
+
+    count = 0;
 
     updatedCart.user = undefined;
     updatedCart.__v = undefined;
 
     return res.status(200).json({ success: true, updatedCart });
   } catch (error) {
+    console.log(error);
     res
       .status(500)
       .json({ error: "Server has occured some problem, please try again" });
@@ -98,6 +110,8 @@ exports.getUserSpecificCartItems = async (req, res) => {
       count = 0;
     });
 
+    count = 0;
+
     return res.status(200).json({ success: true, cartItems });
   } catch (error) {
     console.log(error);
@@ -105,4 +119,18 @@ exports.getUserSpecificCartItems = async (req, res) => {
       .status(500)
       .json({ error: "Server has occured some problem, please try again" });
   }
+};
+
+exports.removeCart = async (req, res) => {
+  try {
+    const removeCart = await Cart.findByIdAndDelete(req.params.id, {
+      new: true,
+    });
+    if (!removeCart) {
+      return res.status(400).json({ error: "Product was not found in cart" });
+    }
+    return res
+      .status(200)
+      .json({ success: true, message: "Product removed from cart" });
+  } catch (error) {}
 };

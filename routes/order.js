@@ -8,25 +8,27 @@ const {
   getLoggedInOrders,
   getOneOrder,
 } = require("../Controllers/order");
+const isLoggedIn = require("../middlewares/authenticate");
+const { checkAdmin } = require("../middlewares/checkRole");
 
 // ********* Admin only routes *********
 
 //admin crud operations -> Order
 router
   .route("/admin/order/:id")
-  .delete(authenticate, checkAdmin, adminDeleteOneOrder)
-  .get(authenticate, checkAdmin, admingetAllOrders)
-  .put(authenticate, checkAdmin, adminUpdateOneOrder);
+  .delete(isLoggedIn, checkAdmin, adminDeleteOneOrder)
+  .get(isLoggedIn, checkAdmin, admingetAllOrders)
+  .put(isLoggedIn, checkAdmin, adminUpdateOneOrder);
 
 // ********* User only routes *********
 
 //create order
-router.route("/order/create").post(authenticate, createOrder);
+router.route("/order").post(isLoggedIn, createOrder);
 
 //get user specific orders
-router.route("/orders").get(authenticate, getLoggedInOrders);
+router.route("/order").get(isLoggedIn, getLoggedInOrders);
 
 //get one order
-router.route("/order/:id").get(authenticate, getOneOrder);
+router.route("/order/:id").get(isLoggedIn, getOneOrder);
 
 module.exports = router;

@@ -17,11 +17,15 @@ const { checkAdmin } = require("../middlewares/checkRole");
 
 // ********* Admin only routes *********
 
-//admin crud operations -> Product
+//admin add/get products
 router
   .route("/admin/product")
   .post(authenticate, checkAdmin, addProduct)
-  .get(authenticate, checkAdmin, adminGetAllProducts)
+  .get(authenticate, checkAdmin, adminGetAllProducts);
+
+//admin update/delete products
+router
+  .route("/admin/product/:id")
   .put(authenticate, checkAdmin, adminUpdateProduct)
   .delete(authenticate, checkAdmin, adminDeleteProduct);
 

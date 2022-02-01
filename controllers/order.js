@@ -55,11 +55,14 @@ exports.getLoggedInOrders = async (req, res) => {
   try {
     const orders = await Order.find({ user: req.user._id });
 
+    console.log(orders);
+
     if (!orders) {
       return res
         .status(200)
         .json({ message: "No orders found with this user" });
     }
+    return res.status(200).json(orders);
   } catch (error) {
     res
       .status(500)
@@ -87,6 +90,9 @@ exports.admingetAllOrders = async (req, res) => {
 };
 
 exports.adminUpdateOneOrder = async (req, res) => {
+  if (!req.body.orderStatus) {
+    return res.status(400).json({ error: "Order status field is required" });
+  }
   try {
     const order = await Order.findById(req.params.id);
     if (!order) {
@@ -100,9 +106,11 @@ exports.adminUpdateOneOrder = async (req, res) => {
 
     order.orderStatus = req.body.orderStatus;
 
-    order.orderItems.forEach(async (prod) => {
-      await updateProductStock(prod.product, prod.quantity);
-    });
+    if (req.body.orderStatus === "delivered") {
+      order.orderItems.forEach(async (prod) => {
+        await updateProductStock(prod.product, prod.quantity);
+      });
+    }
 
     await order.save();
     res.status(200).json({ success: true, message: "Order was updated" });

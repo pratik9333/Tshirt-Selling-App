@@ -139,6 +139,7 @@ exports.adminUpdateProduct = async (req, res) => {
       updatedProduct,
     });
   } catch (error) {
+    console.log(error);
     res
       .status(500)
       .json({ error: "Server has occured some problem, please try again" });
@@ -206,13 +207,13 @@ exports.addReview = async (req, res) => {
       }
     }
 
-    if (foundReview) {
-      product.reviews.push(review);
+    if (!foundReview) {
+      product.reviews.push(reviewObj);
       product.noofreviews = product.reviews.length;
     }
 
     // adjust ratings
-    product.ratings =
+    product.rating =
       product.reviews.reduce((acc, item) => item.rating + acc, 0) /
       product.reviews.length;
 
@@ -223,6 +224,7 @@ exports.addReview = async (req, res) => {
       success: true,
     });
   } catch (error) {
+    console.log(error);
     res
       .status(500)
       .json({ error: "Server has occured some problem, please try again" });
@@ -231,6 +233,7 @@ exports.addReview = async (req, res) => {
 
 exports.deleteReview = async (req, res) => {
   const productId = req.params.id;
+  let rating = 0;
 
   try {
     const product = await Product.findById(productId);
@@ -240,15 +243,17 @@ exports.deleteReview = async (req, res) => {
     }
 
     const reviews = product.reviews.filter(
-      (rev) => rev.user.toString() === req.user._id.toString()
+      (rev) => rev.user.toString() !== req.user._id.toString()
     );
 
     const noofreviews = reviews.length;
 
     // adjust ratings
-    const rating =
-      product.reviews.reduce((acc, item) => item.rating + acc, 0) /
-      product.reviews.length;
+    if (reviews.length != 0) {
+      rating =
+        product.reviews.reduce((acc, item) => item.rating + acc, 0) /
+        noofreviews;
+    }
 
     // save
     await Product.findByIdAndUpdate(
@@ -256,10 +261,12 @@ exports.deleteReview = async (req, res) => {
       { reviews, rating, noofreviews },
       { new: true, runValidators: true }
     );
+    rating = 0;
     res.status(200).json({
       success: true,
     });
   } catch (error) {
+    console.log(error);
     res
       .status(500)
       .json({ error: "Server has occured some problem, please try again" });

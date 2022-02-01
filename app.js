@@ -36,11 +36,13 @@ const home = require("./routes/home");
 const user = require("./routes/user");
 const product = require("./routes/product");
 const cart = require("./routes/cart");
+const order = require("./routes/order");
 
 //router middleware
 app.use("/api/v1", home);
 app.use("/api/v1", user);
 app.use("/api/v1", product);
 app.use("/api/v1", cart);
+app.use("/api/v1", order);
 
 module.exports = app;
