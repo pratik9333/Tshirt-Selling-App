@@ -1,5 +1,6 @@
 const Cart = require("../models/cart");
 const Product = require("../models/product");
+const client = require("../config/redis");
 
 exports.addToCart = async (req, res) => {
   try {
@@ -65,7 +66,7 @@ exports.updateCart = async (req, res) => {
 
     await client.del(`user:${req.user._id.toString()}`);
 
-    cartItem.save();
+    await cartItem.save();
 
     return res.status(200).json({ success: true, message: "Cart Updated" });
   } catch (error) {
@@ -130,6 +131,24 @@ exports.removeCart = async (req, res) => {
     // });
     return res
       .status(200)
-      .json({ success: true, message: "Product removed from cart" });
-  } catch (error) {}
+      .json({ success: true, message: "Product is removed from cart" });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "Server has occured some problem, please try again" });
+  }
+};
+
+exports.removeAllUserItem = async (req, res) => {
+  try {
+    await Cart.find({ user: req.user._id }).remove();
+
+    await client.del(`user:${req.user._id.toString()}`);
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "Server has occured some problem, please try again" });
+  }
 };

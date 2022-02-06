@@ -16,7 +16,7 @@ const {
   getUsersForManager,
 } = require("../controllers/user");
 
-const authenticate = require("../middlewares/authenticate");
+const isLoggedIn = require("../middlewares/authenticate");
 const { checkAdmin, checkManager } = require("../middlewares/checkRole");
 
 /* ***** User only Routes ***** */
@@ -31,39 +31,39 @@ router.route("/login").post(login);
 router.route("/logout").get(logout);
 
 //logged in user details
-router.route("/user").get(authenticate, getLoggedInUserDetails);
+router.route("/user").get(isLoggedIn, getLoggedInUserDetails);
 
 //update user
-router.route("/user").put(authenticate, updateUserDetails);
+router.route("/user").put(isLoggedIn, updateUserDetails);
 
 //forgotPassword route
-router.route("/forgot/password").post(authenticate, forgotPassword);
+router.route("/forgot/password").post(isLoggedIn, forgotPassword);
 
 //verifyForgotPasswordToken
 router
   .route("/password/reset/:token")
-  .post(authenticate, verifyForgotPasswordToken);
+  .post(isLoggedIn, verifyForgotPasswordToken);
 
 //change password
-router.route("/update/password").post(authenticate, changePassword);
+router.route("/update/password").post(isLoggedIn, changePassword);
 
 /* ***** Admin only Routes ***** */
 
 //get users
-router.route("/users").get(authenticate, checkAdmin, getUsers);
+router.route("/users").get(isLoggedIn, checkAdmin, getUsers);
 
 //user read,update,delete by admin
 router
   .route("/user/:id")
-  .get(authenticate, checkAdmin, getOneUser)
-  .put(authenticate, checkAdmin, adminUpdateOneUser)
-  .delete(authenticate, checkAdmin, adminDeleteOneUser);
+  .get(isLoggedIn, checkAdmin, getOneUser)
+  .put(isLoggedIn, checkAdmin, adminUpdateOneUser)
+  .delete(isLoggedIn, checkAdmin, adminDeleteOneUser);
 
 /* ***** Manager only Routes ***** */
 
 //get users
 router
   .route("/manager/users")
-  .get(authenticate, checkManager, getUsersForManager);
+  .get(isLoggedIn, checkManager, getUsersForManager);
 
 module.exports = router;
