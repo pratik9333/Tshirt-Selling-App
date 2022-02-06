@@ -11,7 +11,6 @@ const connectWithDB = () => {
     .catch((error) => {
       console.log(`DB failed to connect`);
       console.log(error);
-      process.exit(1);
     });
 };
 
