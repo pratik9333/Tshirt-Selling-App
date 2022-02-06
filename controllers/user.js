@@ -89,6 +89,7 @@ exports.logout = async (req, res) => {
     expires: new Date(Date.now()),
     httpOnly: true,
   };
+
   await client.del(`user:${req.user._id.toString()}`);
 
   res

@@ -28,7 +28,7 @@ router.route("/signup").post(signup);
 router.route("/login").post(login);
 
 //logout route
-router.route("/logout").get(logout);
+router.route("/logout").get(isLoggedIn, logout);
 
 //logged in user details
 router.route("/user").get(isLoggedIn, getLoggedInUserDetails);
