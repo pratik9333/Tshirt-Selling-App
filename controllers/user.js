@@ -3,6 +3,7 @@ const cloudinary = require("cloudinary");
 const getCookieToken = require("../utils/cookieToken");
 const sendMail = require("../utils/sendMail");
 const crypto = require("crypto");
+const client = require("../config/redis");
 
 exports.signup = async (req, res) => {
   const { name, email, password } = req.body;
@@ -88,11 +89,15 @@ exports.logout = async (req, res) => {
     expires: new Date(Date.now()),
     httpOnly: true,
   };
+  await client.del(`user:${req.user._id.toString()}`);
 
-  res.status(200).cookie("token", null, options).json({
-    success: true,
-    message: "Logout Success",
-  });
+  res
+    .status(200)
+    .cookie("token", null, options)
+    .json({
+      success: true,
+      message: "Logout Success",
+    });
 };
 
 exports.forgotPassword = async (req, res) => {

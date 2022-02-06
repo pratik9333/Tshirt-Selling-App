@@ -31,7 +31,9 @@ exports.addToCart = async (req, res) => {
       user: req.user._id,
     });
 
-    res.status(200).json({ success: true, message: "Added to cart" });
+    await client.del(`user:${req.user._id.toString()}`);
+
+    return res.status(200).json({ success: "Added to cart" });
   } catch (error) {
     console.log(error);
     res
@@ -41,43 +43,31 @@ exports.addToCart = async (req, res) => {
 };
 
 exports.updateCart = async (req, res) => {
-  const { quantity } = req.body;
-  let count = 0;
+  const { incr, decr } = req.body;
+
   try {
-    if (!quantity) {
-      return res.status(400).json({ error: "Quantity field is required" });
+    const cartItem = await Cart.findById(req.params.id);
+
+    if (incr) {
+      cartItem.quantity += 1;
+      cartItem.total = cartItem.price * cartItem.quantity;
     }
-
-    const cartProduct = await Cart.findById(req.params.id);
-
-    if (!cartProduct) {
-      return res.status(400).json({ error: "Product was not found in cart" });
-    }
-
-    let updatedTotal = cartProduct.price * quantity;
-
-    const updatedCart = await Cart.findByIdAndUpdate(
-      req.params.id,
-      {
-        quantity,
-        total: updatedTotal,
-      },
-      { new: true }
-    ).populate("product", "name description photos");
-
-    updatedCart.product.photos.forEach((photo) => {
-      if (count == 0) {
-        updatedCart.product.photos = photo;
+    if (decr) {
+      if (cartItem.quantity > 1) {
+        cartItem.quantity -= 1;
+        cartItem.total = cartItem.total - cartItem.price;
+      } else {
+        return res
+          .status(200)
+          .json({ success: false, message: "Quantity cannot be decreased" });
       }
-      count++;
-    });
+    }
 
-    count = 0;
+    await client.del(`user:${req.user._id.toString()}`);
 
-    updatedCart.user = undefined;
-    updatedCart.__v = undefined;
+    cartItem.save();
 
-    return res.status(200).json({ success: true, updatedCart });
+    return res.status(200).json({ success: true, message: "Cart Updated" });
   } catch (error) {
     console.log(error);
     res
@@ -88,31 +78,25 @@ exports.updateCart = async (req, res) => {
 
 exports.getUserSpecificCartItems = async (req, res) => {
   try {
-    let count = 0;
-    const cartItems = await Cart.find({ user: req.user._id }).populate(
-      "product",
-      "name description photos"
-    );
-
-    if (cartItems.length == 0) {
-      return res.status(200).json({ message: "Cart is empty" });
-    }
-
-    cartItems.forEach((item) => {
-      item.user = undefined;
-      item.__v = undefined;
-      item.product.photos.forEach((photo) => {
-        if (count == 0) {
-          item.product.photos = photo;
+    client.hgetall(`user:${req.user._id.toString()}`, async (err, obj) => {
+      if (!obj) {
+        const cartItems = await Cart.find({ user: req.user._id });
+        if (cartItems.length !== 0) {
+          await client.hmset(
+            `user:${req.user._id.toString()}`,
+            "cartItems",
+            JSON.stringify(cartItems)
+          );
+          return res.status(200).json({ cartItems });
+        } else {
+          return res.status(200).json({ message: "Cart is empty" });
         }
-        count++;
-      });
-      count = 0;
+      } else {
+        client.hgetall(`user:${req.user._id.toString()}`, (err, obj) => {
+          return res.status(200).json(JSON.parse(obj.cartItems));
+        });
+      }
     });
-
-    count = 0;
-
-    return res.status(200).json({ success: true, cartItems });
   } catch (error) {
     console.log(error);
     res
@@ -123,12 +107,27 @@ exports.getUserSpecificCartItems = async (req, res) => {
 
 exports.removeCart = async (req, res) => {
   try {
-    const removeCart = await Cart.findByIdAndDelete(req.params.id, {
-      new: true,
-    });
-    if (!removeCart) {
+    const findProduct = await Cart.find({ product: req.params.id });
+
+    if (!findProduct) {
       return res.status(400).json({ error: "Product was not found in cart" });
     }
+
+    await Cart.deleteOne({ product: req.params.id });
+
+    await client.del(`user:${req.user._id.toString()}`);
+
+    // client.hgetall(`user:${req.user._id.toString()}`, async (err, obj) => {
+    //   let items = JSON.parse(obj.cartItems);
+    //   let filteredItems = items.filter(
+    //     (item) => item.product !== req.params.id
+    //   );
+    //   await client.hmset(
+    //     `user:${req.user._id.toString()}`,
+    //     "cartItems",
+    //     JSON.stringify(filteredItems)
+    //   );
+    // });
     return res
       .status(200)
       .json({ success: true, message: "Product removed from cart" });
